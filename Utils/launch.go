@@ -71,5 +71,9 @@ func launchGame() {
 	} else {
 		log.Println("-> 启动成功")
 		fmt.Println(launchOut)
+		go func() {
+			log.Println("-> 自动任务: 关闭启动器") // 启动完成后关闭启动器
+			os.Exit(0)
+		}()
 	}
 }

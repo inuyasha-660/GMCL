@@ -1,6 +1,7 @@
 package main
 
 import (
+	resources "go-mcl/Resources"
 	utils "go-mcl/Utils"
 	"log"
 	"net/url"
@@ -46,18 +47,14 @@ func init() {
 
 	errMkdir := os.MkdirAll("./.gmcl", 0777)
 	if errMkdir != nil {
-		log.Println("创建目录失败:", errMkdir)
+		log.Println("==> 创建目录失败:", errMkdir)
 	}
 }
 
 func main() {
 
 	hmcl := app.New()
-	icon, err := fyne.LoadResourceFromPath("./Resources/icon.png") // 加载 icon.png
-	if err != nil {
-		log.Println("==> 加载 icon.png 失败")
-	}
-	hmcl.SetIcon(icon)
+	hmcl.SetIcon(resources.ResourceIconSvg) // 设置 icon.svg 图标
 
 	// 读取设置的主题
 	var UserTheme UserToml
@@ -93,9 +90,10 @@ func main() {
 	}
 
 	hmclWindow_Main := hmcl.NewWindow("HMCL - 1.0.0")
+	hmclWindow_Main.SetMaster() // 设置为主窗口
 
 	// Home页头像
-	image_Author := canvas.NewImageFromFile("./Resources/avatar.jpg")
+	image_Author := canvas.NewImageFromResource(theme.AccountIcon())
 	image_Author.FillMode = canvas.ImageFillContain
 	image_Author.SetMinSize(fyne.NewSize(50, 50))
 
@@ -109,11 +107,18 @@ func main() {
 		input_UUID := widget.NewEntry()
 		input_UUID.SetPlaceHolder("UUID")
 
+		label_LoginLog := widget.NewLabel("")
+
 		button_Login := widget.NewButton("Login", func() {
-			CreateUserToml(input_UserName.Text)
+			ifSuccess := CreateUserToml(input_UserName.Text)
+			if ifSuccess {
+				label_LoginLog.SetText("Login Succeeded" + "\n" + "Please restart GMCL")
+			} else {
+				label_LoginLog.SetText("Login failed")
+			}
 		})
 
-		content_Login := container.NewVBox(input_UserName, input_UUID, button_Login)
+		content_Login := container.NewVBox(input_UserName, input_UUID, button_Login, label_LoginLog)
 		loginWin.SetContent(content_Login)
 		loginWin.Resize(fyne.NewSize(200, 250))
 		loginWin.Show()
@@ -143,11 +148,31 @@ func main() {
 	button_Down_Game := container.NewVBox(widget.NewButton(DownGame, func() {
 		dowmWin := hmcl.NewWindow("Download Game")
 
-		// TODO: 添加 Forge 支持
+		// 游戏版本选择
+		gameListRelease_Indicator, gameListSnapshot_Indicator := utils.GetGameList()
+		var gameListRelease []string = *gameListRelease_Indicator // 指针类型转换
+		var gameListSnapshot []string = *gameListSnapshot_Indicator
+
+		label_GameChoose := widget.NewLabel("Choose ==>")
+
+		gameTypeName_Release := widget.NewLabel("Release")
+		Select_ReleaseChoose := widget.NewSelect(gameListRelease, func(chooseRelease string) { // 发行版
+			log.Println(chooseRelease)
+			label_GameChoose.SetText("Choose => " + chooseRelease)
+		})
+
+		gameTypeName_Snapshot := widget.NewLabel("Snapshot")
+		Select_SnapshotChoose := widget.NewSelect(gameListSnapshot, func(chooseSnapshot string) { // 快照
+			log.Println(chooseSnapshot)
+			label_GameChoose.SetText("Choose => " + chooseSnapshot)
+		})
+
+		check_Forge := widget.NewCheck("Forge", func(forge bool) {
+			log.Println("Forge:", forge)
+		})
 
 		button_DownWin := widget.NewButton("DownLoads", func() {
-			var DownLog = time.Now().Format("15:04:05") + " => Start Download" // 下载日志
-			lable_Down_Log := widget.NewLabel(DownLog)
+			lable_Down_Log := widget.NewLabel(time.Now().Format("15:04:05") + " => Start Download") // 下载日志
 
 			progress_Down := widget.NewProgressBarInfinite() // 下载进度条
 
@@ -156,11 +181,7 @@ func main() {
 			dowmWin.SetContent(content_Down_Start)
 		})
 
-		// 下载游戏-输入目标版本号
-		input_Version := widget.NewEntry()
-		input_Version.SetPlaceHolder("Enter a version")
-
-		content_Down := container.NewVBox(input_Version, button_DownWin)
+		content_Down := container.NewVBox(gameTypeName_Release, Select_ReleaseChoose, gameTypeName_Snapshot, Select_SnapshotChoose, check_Forge, label_GameChoose, button_DownWin)
 
 		dowmWin.Resize(fyne.NewSize(300, 500))
 		dowmWin.SetContent(content_Down)
@@ -269,11 +290,11 @@ func main() {
 	}))
 
 	// 设置 - 启动器信息
-	image_Icon := canvas.NewImageFromFile("./Resources/icon.png")
+	image_Icon := canvas.NewImageFromResource(resources.ResourceIconSvg)
 	image_Icon.FillMode = canvas.ImageFillContain
 	image_Icon.SetMinSize(fyne.NewSize(50, 50))
 
-	link_Gmcl_Github := widget.NewHyperlink("Github", parseURL("https://github.com/inuyasha-660")) // TODO: 更换 url 为 gmcl 开源链接
+	link_Gmcl_Github := widget.NewHyperlink("Github", parseURL("https://github.com/inuyasha-660/GMCL"))
 	label_Gmcl := container.NewBorder(nil, nil, widget.NewLabel("GMCL - 1.0.0"), link_Gmcl_Github)
 
 	link_Author_Github := widget.NewHyperlink("Github", parseURL("https://github.com/inuyasha-660"))
@@ -328,7 +349,7 @@ func GetPATH() string {
 }
 
 // 创建用户配置
-func CreateUserToml(userName string) {
+func CreateUserToml(userName string) bool {
 	user_toml, err := os.Create("./.gmcl/user.toml")
 	if err != nil {
 		log.Println("创建用户配置失败")
@@ -339,16 +360,20 @@ func CreateUserToml(userName string) {
 
 	_, errWriteUserNmae := user_toml.WriteString("UserName = " + `"` + userName + `"` + "\n")
 	if errWriteUserNmae != nil {
-		log.Println("用户名写入失败")
+		log.Println("用户名写入失败:", errWriteUserNmae)
+		return false
 	} else {
 		log.Println("用户名写入成功")
-	}
-	_, errWriteDate := user_toml.WriteString(`LoginDate = ` + `"` + time.Now().Format("2006-01-02 15:04:05") + `"`)
-	if errWriteDate != nil {
-		log.Println("登陆日期写入失败")
-	} else {
-		log.Println("登陆日期写入成功")
-		log.Println("登陆成功, 请重启启动器")
+
+		_, errWriteDate := user_toml.WriteString(`LoginDate = ` + `"` + time.Now().Format("2006-01-02 15:04:05") + `"`)
+		if errWriteDate != nil {
+			log.Println("登陆日期写入失败", errWriteDate)
+			return false
+		} else {
+			log.Println("登陆日期写入成功")
+			log.Println("登陆成功, 请重启启动器")
+			return true
+		}
 	}
 }
 
