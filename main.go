@@ -27,7 +27,7 @@ const Downloads_Version_Json = `
  `
 
 const EXIT = `
- 	EXit launcher     
+ 	Exit launcher     
  `
 
 const DownGame = `
@@ -40,6 +40,11 @@ type UserToml struct {
 	UserName   string
 	LoginDate  string
 	ThemeColor string
+}
+
+type GameChoose struct {
+	Version string
+	Forge   bool
 }
 
 func init() {
@@ -135,8 +140,8 @@ func main() {
 	list_DeviceInfo := container.NewVBox(image_Author, lable_User)
 
 	// Home页运行日志
-	lable_Log_Path := widget.NewLabel("Running Path: " + "\n" + GetPATH()) // 获取运行目录
-	lable_Log := container.NewVBox(widget.NewLabel("Running Log"+"\n"+RUNNING_LOG_LINE), lable_Log_Path)
+	lable_Log_Path := widget.NewLabel("Running Path: " + "\n" + GetPATH())
+	lable_Log := container.NewVBox(widget.NewLabel("Running Log"+"\n"+RUNNING_LOG_LINE), lable_Log_Path) // TODO: 修改为游戏版本检测
 
 	// 启动游戏
 	button_LaunchGame := container.NewVBox(widget.NewButton(LAUNCH_GAME, utils.LaunchCheck))
@@ -153,32 +158,31 @@ func main() {
 		var gameListRelease []string = *gameListRelease_Indicator // 指针类型转换
 		var gameListSnapshot []string = *gameListSnapshot_Indicator
 
+		GameVersionChoose := &GameChoose{}
+
 		label_GameChoose := widget.NewLabel("Choose ==>")
 
 		gameTypeName_Release := widget.NewLabel("Release")
 		Select_ReleaseChoose := widget.NewSelect(gameListRelease, func(chooseRelease string) { // 发行版
-			log.Println(chooseRelease)
+
 			label_GameChoose.SetText("Choose => " + chooseRelease)
+			GameVersionChoose.Version = chooseRelease
 		})
 
 		gameTypeName_Snapshot := widget.NewLabel("Snapshot")
 		Select_SnapshotChoose := widget.NewSelect(gameListSnapshot, func(chooseSnapshot string) { // 快照
-			log.Println(chooseSnapshot)
+
 			label_GameChoose.SetText("Choose => " + chooseSnapshot)
+			GameVersionChoose.Version = chooseSnapshot
 		})
 
 		check_Forge := widget.NewCheck("Forge", func(forge bool) {
-			log.Println("Forge:", forge)
+
+			GameVersionChoose.Forge = forge
 		})
 
 		button_DownWin := widget.NewButton("DownLoads", func() {
-			lable_Down_Log := widget.NewLabel(time.Now().Format("15:04:05") + " => Start Download") // 下载日志
-
-			progress_Down := widget.NewProgressBarInfinite() // 下载进度条
-
-			content_Down_Start := container.NewVBox(lable_Down_Log, progress_Down)
-
-			dowmWin.SetContent(content_Down_Start)
+			utils.DownloadsGmae(GameVersionChoose.Version, GameVersionChoose.Forge, dowmWin)
 		})
 
 		content_Down := container.NewVBox(gameTypeName_Release, Select_ReleaseChoose, gameTypeName_Snapshot, Select_SnapshotChoose, check_Forge, label_GameChoose, button_DownWin)
