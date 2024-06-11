@@ -3,7 +3,7 @@ package utils
 import (
 	"bytes"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"time"
@@ -11,21 +11,21 @@ import (
 
 // Java 版本检测
 func LaunchCheck() {
-	log.Println("==> 依赖检测")
+	slog.Info("依赖检测")
 	launch := exec.Command("java", "--version")
 	var stdout, stderr bytes.Buffer
 	launch.Stdout = &stdout
 	launch.Stderr = &stderr
 	err := launch.Run()
 	if err != nil {
-		log.Println(err)
+		slog.Error(err.Error())
 	}
 
 	javaVersionOut, javaVersionErr := stdout.String(), stderr.String()
 	if javaVersionErr != "" {
-		log.Println(javaVersionErr)
+		slog.Info(javaVersionErr)
 	} else {
-		log.Println("=> Java版本")
+		slog.Info("Java版本")
 		fmt.Println(javaVersionOut)
 		createScript()
 	}
@@ -34,12 +34,12 @@ func LaunchCheck() {
 
 // 创建启动脚本
 func createScript() {
-	log.Print("=> 创建并写入启动脚本")
+	slog.Info("创建并写入启动脚本")
 	launchSh, err := os.Create("./.gmcl/launch.sh")
 	if err != nil {
-		log.Println("-> 创建失败:", err)
+		slog.Error("创建失败:", err)
 	} else {
-		log.Print("-> 创建成功")
+		slog.Info("创建成功")
 	}
 	defer launchSh.Close()
 
@@ -47,9 +47,9 @@ func createScript() {
 
 	_, errWrite := launchSh.WriteString(`# Create Date: ` + time.Now().Format("2006-01-02 15:04:05") + "\n" + ` echo "Hello world"`)
 	if errWrite != nil {
-		log.Println("-> 写入失败:", errWrite)
+		slog.Error("写入失败:", errWrite)
 	} else {
-		log.Println("-> 写入成功")
+		slog.Info("写入成功")
 		launchGame()
 	}
 }
@@ -62,18 +62,14 @@ func launchGame() {
 	launch.Stderr = &stderr
 	err := launch.Run()
 	if err != nil {
-		log.Println(err)
+		slog.Error(err.Error())
 	}
 
 	launchOut, launchErr := stdout.String(), stderr.String()
 	if launchErr != "" {
-		log.Println(launchErr)
+		slog.Error(launchErr)
 	} else {
-		log.Println("-> 启动成功")
+		slog.Info("启动成功")
 		fmt.Println(launchOut)
-		go func() {
-			log.Println("-> 自动任务: 关闭启动器") // 启动完成后关闭启动器
-			os.Exit(0)
-		}()
 	}
 }
