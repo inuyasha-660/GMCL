@@ -3,7 +3,8 @@ package main
 import (
 	resources "go-mcl/Resources"
 	utils "go-mcl/Utils"
-	"log"
+	"log/slog"
+
 	"net/url"
 	"os"
 	"runtime"
@@ -48,11 +49,19 @@ type GameChoose struct {
 }
 
 func init() {
-	log.Println("==> 少女祈祷中...")
+	slog.Info("==> 少女祈祷中...")
+	slog.Info("System: " + runtime.GOOS)
+	slog.Info("Arch: " + runtime.GOARCH)
+	path, err := os.Getwd()
+	if err != nil {
+		slog.Error("运行目录获取失败", err)
+	} else {
+		slog.Info("Path: " + path)
+	}
 
 	errMkdir := os.MkdirAll("./.gmcl", 0777)
 	if errMkdir != nil {
-		log.Println("==> 创建目录失败:", errMkdir)
+		slog.Error("创建目录失败:", errMkdir)
 	}
 }
 
@@ -66,12 +75,12 @@ func main() {
 
 	user_theme, err := os.ReadFile("./.gmcl/user.toml")
 	if err != nil {
-		log.Println("读取用户主题失败")
+		slog.Warn("用户主题为空")
 	}
 
 	errUnmarshal := toml.Unmarshal([]byte(user_theme), &UserTheme)
 	if errUnmarshal != nil {
-		log.Println("解析用户主题失败")
+		slog.Error("解析用户主题失败")
 	}
 
 	switch UserTheme.ThemeColor {
@@ -89,7 +98,7 @@ func main() {
 		}
 	default:
 		{
-			log.Println("读取失败, 重置为默认主题")
+			slog.Error("读取失败, 重置为默认主题")
 			hmcl.Settings().SetTheme(theme.DefaultTheme())
 		}
 	}
@@ -187,7 +196,7 @@ func main() {
 
 		content_Down := container.NewVBox(gameTypeName_Release, Select_ReleaseChoose, gameTypeName_Snapshot, Select_SnapshotChoose, check_Forge, label_GameChoose, button_DownWin)
 
-		dowmWin.Resize(fyne.NewSize(300, 500))
+		dowmWin.Resize(fyne.NewSize(400, 500))
 		dowmWin.SetContent(content_Down)
 		dowmWin.Show()
 	}))
@@ -203,7 +212,7 @@ func main() {
 	lable_CreDefLauToml := widget.NewLabel("")
 
 	button_CreDefLauToml := container.NewVBox(widget.NewButton("Create Launch toml", func() {
-		log.Println("开始生成")
+		slog.Info("开始生成")
 		lable_CreDefLauToml.SetText("Create Successfully")
 	}))
 
@@ -211,7 +220,7 @@ func main() {
 	choices_Settings := container.NewVBox(widget.NewSelect([]string{"Dark", "Forgive-Green", "Bili-Pink"}, func(color string) {
 		toml_Theme, err := os.OpenFile("./.gmcl/user.toml", os.O_WRONLY|os.O_CREATE, os.ModePerm)
 		if err != nil {
-			log.Println("主题 - 打开用户配置失败", err)
+			slog.Error("主题 - 打开用户配置失败", err)
 		}
 		toml_Theme.Seek(0, 2) // 从配置文件的末尾第 0 个字符开始写入
 		// [x,0]: 相对文件原点第 x 个字符， [x,1]: 从上次写入位置游标第 x 个字符开始 [x,2]: 相对文件末尾 x 个字符开始
@@ -219,37 +228,37 @@ func main() {
 		var theme_Set UserToml
 		toml_ThemeFile, errRead := os.ReadFile("./.gmcl/user.toml")
 		if errRead != nil {
-			log.Println("ReadFile: 读取用户配置失败", errRead)
+			slog.Error("ReadFile: 读取用户配置失败", errRead)
 		}
 
 		errUnmarshal := toml.Unmarshal([]byte(toml_ThemeFile), &theme_Set)
 		if errUnmarshal != nil {
-			log.Println("读取用户配置失败", err)
+			slog.Error("读取用户配置失败", err)
 		}
 
 		if theme_Set.ThemeColor == "" {
 
 			_, errWriteTheme := toml_Theme.WriteString("\n" + "ThemeColor = " + `"` + color + `"`)
 			if errWriteTheme != nil {
-				log.Println("主题配置写入失败", err)
+				slog.Error("主题配置写入失败", err)
 			}
 		} else {
-			log.Println("发现存在的主题配置, 尝试覆盖中")
+			slog.Info("发现存在的主题配置, 尝试覆盖中")
 			toml_Theme.Seek(0, 0)
 			userName := theme_Set.UserName
 			loginDate := theme_Set.LoginDate
 			_, errWriteUserNmae := toml_Theme.WriteString("UserName = " + `"` + userName + `"` + "\n")
 			if errWriteUserNmae != nil {
-				log.Println("覆盖用户名失败", errWriteUserNmae)
+				slog.Error("覆盖用户名失败", errWriteUserNmae)
 			}
 			_, errWriteDate := toml_Theme.WriteString(`LoginDate = ` + `"` + loginDate + `"`)
 			if errWriteDate != nil {
-				log.Println("覆盖日期失败", errWriteDate)
+				slog.Error("覆盖日期失败", errWriteDate)
 			}
 			_, errWriteTheme := toml_Theme.WriteString("\n" + "ThemeColor = " + `"` + color + `"` + `         `)
 			// `     ` - 空格作用: 避免 "Dark/Bili-Pink"主题长度不够导致未能完全覆盖 "Forgive-Green"主题
 			if errWriteTheme != nil {
-				log.Println("主题配置写入失败", err)
+				slog.Error("主题配置写入失败", err)
 			}
 		}
 
@@ -261,33 +270,33 @@ func main() {
 
 		user_theme, err := os.ReadFile("./.gmcl/user.toml")
 		if err != nil {
-			log.Println("读取用户主题失败")
+			slog.Error("读取用户主题失败", err)
 		}
 
 		errUnmarshal := toml.Unmarshal([]byte(user_theme), &UserTheme)
 		if errUnmarshal != nil {
-			log.Println("解析用户主题失败")
+			slog.Error("解析用户主题失败", errUnmarshal)
 		}
 
 		switch UserTheme.ThemeColor {
 		case "Forgive-Green":
 			{
 				hmcl.Settings().SetTheme(&Forgive_Green{})
-				log.Println("主题: " + UserTheme.ThemeColor + " 设置成功")
+				slog.Info("主题: " + UserTheme.ThemeColor + " 设置成功")
 			}
 		case "Dark":
 			{
 				hmcl.Settings().SetTheme(&Dark{})
-				log.Println("主题: " + UserTheme.ThemeColor + " 设置成功")
+				slog.Info("主题: " + UserTheme.ThemeColor + " 设置成功")
 			}
 		case "Bili-Pink":
 			{
 				hmcl.Settings().SetTheme(&Bili_Pink{})
-				log.Println("主题: " + UserTheme.ThemeColor + " 设置成功")
+				slog.Info("主题: " + UserTheme.ThemeColor + " 设置成功")
 			}
 		default:
 			{
-				log.Println("读取失败, 重置为默认主题")
+				slog.Info("读取失败, 重置为默认主题")
 				hmcl.Settings().SetTheme(theme.DefaultTheme())
 			}
 		}
@@ -356,7 +365,7 @@ func GetPATH() string {
 func CreateUserToml(userName string) bool {
 	user_toml, err := os.Create("./.gmcl/user.toml")
 	if err != nil {
-		log.Println("创建用户配置失败")
+		slog.Error("创建用户配置失败", err)
 	}
 	defer user_toml.Close()
 
@@ -364,18 +373,18 @@ func CreateUserToml(userName string) bool {
 
 	_, errWriteUserNmae := user_toml.WriteString("UserName = " + `"` + userName + `"` + "\n")
 	if errWriteUserNmae != nil {
-		log.Println("用户名写入失败:", errWriteUserNmae)
+		slog.Error("用户名写入失败:", errWriteUserNmae)
 		return false
 	} else {
-		log.Println("用户名写入成功")
+		slog.Info("用户名写入成功")
 
 		_, errWriteDate := user_toml.WriteString(`LoginDate = ` + `"` + time.Now().Format("2006-01-02 15:04:05") + `"`)
 		if errWriteDate != nil {
-			log.Println("登陆日期写入失败", errWriteDate)
+			slog.Error("登陆日期写入失败", errWriteDate)
 			return false
 		} else {
-			log.Println("登陆日期写入成功")
-			log.Println("登陆成功, 请重启启动器")
+			slog.Info("登陆日期写入成功")
+			slog.Info("登陆成功, 请重启启动器")
 			return true
 		}
 	}
@@ -387,12 +396,12 @@ func ReadUserToml() (toml_UserNmae string, toml_LoginDate string) {
 
 	toml_UserFile, errRead := os.ReadFile("./.gmcl/user.toml")
 	if errRead != nil {
-		log.Println("ReadFile: 读取用户配置失败", errRead)
+		slog.Error("ReadFile: 读取用户配置失败", errRead)
 	}
 
 	err := toml.Unmarshal([]byte(toml_UserFile), &UserToml)
 	if err != nil {
-		log.Println("读取用户配置失败", err)
+		slog.Error("读取用户配置失败", err)
 	}
 
 	return UserToml.UserName, UserToml.LoginDate
@@ -401,6 +410,6 @@ func ReadUserToml() (toml_UserNmae string, toml_LoginDate string) {
 
 // 退出启动器
 func Exit() {
-	log.Println("Exit with code: 0")
+	slog.Info("Exit with code: 0")
 	os.Exit(0)
 }
