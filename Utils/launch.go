@@ -9,9 +9,9 @@ import (
 	"time"
 )
 
-// Java 版本检测
+// 依赖检测
 func LaunchCheck() {
-	slog.Info("依赖检测")
+	slog.Info("Check Java")
 	launch := exec.Command("java", "--version")
 	var stdout, stderr bytes.Buffer
 	launch.Stdout = &stdout
@@ -25,7 +25,6 @@ func LaunchCheck() {
 	if javaVersionErr != "" {
 		slog.Info(javaVersionErr)
 	} else {
-		slog.Info("Java版本")
 		fmt.Println(javaVersionOut)
 		createScript()
 	}
@@ -34,12 +33,12 @@ func LaunchCheck() {
 
 // 创建启动脚本
 func createScript() {
-	slog.Info("创建并写入启动脚本")
+	slog.Info("Create and write script")
 	launchSh, err := os.Create("./.gmcl/launch.sh")
 	if err != nil {
-		slog.Error("创建失败:", err)
+		Glog("ERROR", "createScrip", "err", err)
 	} else {
-		slog.Info("创建成功")
+		slog.Info("Success")
 	}
 	defer launchSh.Close()
 
@@ -47,9 +46,9 @@ func createScript() {
 
 	_, errWrite := launchSh.WriteString(`# Create Date: ` + time.Now().Format("2006-01-02 15:04:05") + "\n" + ` echo "Hello world"`)
 	if errWrite != nil {
-		slog.Error("写入失败:", errWrite)
+		Glog("ERROR", "createScrip", "errWrite", errWrite)
 	} else {
-		slog.Info("写入成功")
+		slog.Info("Success")
 		launchGame()
 	}
 }
@@ -69,7 +68,7 @@ func launchGame() {
 	if launchErr != "" {
 		slog.Error(launchErr)
 	} else {
-		slog.Info("启动成功")
+		slog.Info("Launch success")
 		fmt.Println(launchOut)
 	}
 }

@@ -23,32 +23,32 @@ const LIBRARISES = ".minecraft/libraries/"
 
 // version_manifest.json
 func GetVersionJson() {
-	slog.Info("开始下载 version_manifest.json")
+	slog.Info("Start downloading version_manifest.json")
 	resp, err := http.Get(VERSION_MANIFEST_JSON)
 
 	if err != nil {
-		slog.Error("下载失败:", err)
+		Glog("ERROR", "GetVersionJson", "err", err)
 	}
 	defer resp.Body.Close()
 
 	manifestJson, errCreate := os.Create("./.gmcl/version_manifest.json")
 	if errCreate != nil {
-		slog.Error("创建文件失败:", errCreate)
+		Glog("ERROR", "GetVersionJson", "errCreate", errCreate)
 	}
 	defer manifestJson.Close()
 
 	_, errCopy := io.Copy(manifestJson, resp.Body)
 
 	if errCopy != nil {
-		slog.Error("复制文件时出错:", errCopy)
+		Glog("ERROR", "GetVersionJson", "errCopy", errCopy)
 	} else {
-		slog.Info("下载完成")
+		slog.Info("Download completed")
 	}
 }
 
 // Json 下载
-func DownloadsGmae(Version string, forge bool, downWin fyne.Window) {
-	slog.Info("开始下载, 选中版本: " + Version)
+func DownloadsGmae(Version string, forge bool, forgeVersion string, downWin fyne.Window) {
+	slog.Info("Start Downloading, Target: " + Version)
 	var downsLog string
 	entry_Down_sLog := widget.NewEntry() // 下载日志
 	entry_Down_sLog.MultiLine = true     // 多行
@@ -63,91 +63,95 @@ func DownloadsGmae(Version string, forge bool, downWin fyne.Window) {
 
 	jsonFile, errReadJson := os.ReadFile("./.gmcl/version_manifest.json")
 	if errReadJson != nil {
-		slog.Error("读取失败", errReadJson)
+		Glog("ERROR", "DownloadsGmae", "errReadJson", errReadJson)
 	}
 
 	gameUrl := gjson.Get(string(jsonFile), `versions.#(id=="`+Version+`")+.url`)
 
 	gameJson, errGet := http.Get(gameUrl.String())
 	if errGet != nil {
-		slog.Error("下载版本 Json 失败", errGet)
+		Glog("ERROR", "DownloadsGmae", "errGet", errGet)
 	}
 	defer gameJson.Body.Close()
 
 	errMkDir := os.MkdirAll(".minecraft/versions/"+Version, 0777)
 	if errMkDir != nil {
-		slog.Error("创建目录失败", errMkDir)
+		Glog("ERROR", "DownloadsGmae", "errMkDir", errMkDir)
 	}
 
 	versionJson, errCreate := os.Create(".minecraft/versions/" + Version + "/" + path.Base(gameUrl.String()))
 	if errCreate != nil {
-		slog.Error("创建 Json 失败", errCreate)
+		Glog("ERROR", "DownloadsGmae", "errCreate", errCreate)
 	}
 	defer versionJson.Close()
 
 	_, errCopy := io.Copy(versionJson, gameJson.Body)
 
 	if errCopy != nil {
-		slog.Error("复制文件时出错:", errCopy)
+		Glog("ERROR", "DownloadsGmae", "errCopy", errCopy)
 	} else {
-		slog.Info("下载" + path.Base(gameUrl.String()) + "完成")
-		downsLog = downsLog + "\n" + "=> " + "Get: " + path.Base(gameUrl.String()) + "\n" + "-> Successfully"
+		slog.Info("Download" + path.Base(gameUrl.String()) + "completed")
+		downsLog = downsLog + "\n" + "=> " + "Get: " + path.Base(gameUrl.String()) + "\n" + "-> Successly"
 		entry_Down_sLog.SetText(downsLog)
 	}
 
 	assetsDownload(".minecraft/versions/"+Version+"/"+path.Base(gameUrl.String()), entry_Down_sLog, downsLog)
 	GetGameJar(Version, ".minecraft/versions/"+Version+"/"+path.Base(gameUrl.String()))
 	GetLibraries(Version, ".minecraft/versions/"+Version+"/"+path.Base(gameUrl.String()))
+
+	if forge {
+		InstallForge(forgeVersion)
+	}
 }
 
 func assetsDownload(path string, entry_Down_sLog *widget.Entry, downsLog string) {
 	// 创建资源目录
 	errIndex := os.MkdirAll(".minecraft/assets/indexes", 0777)
 	if errIndex != nil {
-		slog.Error("创建目录失败", errIndex)
+		Glog("ERROR", "assetsDownload", "errIndex", errIndex)
 	}
 	errObject := os.MkdirAll(".minecraft/assets/objects", 0777)
 	if errObject != nil {
-		slog.Error("创建目录失败", errObject)
+		Glog("ERROR", "assetsDownload", "errObject", errObject)
 	}
 
 	jsonFile, errRead := os.ReadFile(path)
 	if errRead != nil {
-		slog.Error("解析"+path+"失败", errRead)
+		Glog("ERROR", "assetsDownload", "errRead", errRead)
 	}
 
 	assetIndex_ID := gjson.Get(string(jsonFile), `assetIndex.id`)
 	assetIndex_Url := gjson.Get(string(jsonFile), `assetIndex.url`)
 
-	slog.Info("开始下载 " + assetIndex_ID.String() + ".json")
+	slog.Info("Start Downloading " + assetIndex_ID.String() + ".json")
 	resp, err := http.Get(assetIndex_Url.String())
 
 	if err != nil {
-		slog.Error("下载失败:", err)
+		Glog("ERROR", "assetsDownload", "err", err)
 	}
 	defer resp.Body.Close()
 
 	indexPath := ".minecraft/assets/indexes/" + assetIndex_ID.String() + ".json"
 	indexJson, errCreate := os.Create(indexPath)
 	if errCreate != nil {
-		slog.Error("创建文件失败:", errCreate)
+		Glog("ERROR", "assetsDownload", "errCreate", errCreate)
 	}
 	defer indexJson.Close()
 
 	_, errCopy := io.Copy(indexJson, resp.Body)
 
 	if errCopy != nil {
-		slog.Error("复制文件时出错:", errCopy)
+		Glog("ERROR", "assetsDownload", "errCopy", errCopy)
 	} else {
-		slog.Info("下载完成")
-		downsLog = downsLog + "\n" + "=> " + "Get: " + assetIndex_ID.String() + ".json" + "\n" + "-> Successfully"
+		slog.Info("Download completed")
+		downsLog = downsLog + "\n" + "=> " + "Get: " + assetIndex_ID.String() + ".json" + "\n" + "-> Success"
 		entry_Down_sLog.SetText(downsLog)
 
 	}
 
 	indexFile, errIndexRead := os.ReadFile(indexPath)
 	if errIndexRead != nil {
-		slog.Error("解析 "+indexPath, "失败", errIndexRead)
+		slog.Error("Read"+indexPath, "failed:", errIndexRead)
 	}
 
 	Object_Hash := gjson.Get(string(indexFile), `@dig:hash`) // 获取 Objects 内所有 hash 值
@@ -160,27 +164,27 @@ func assetsDownload(path string, entry_Down_sLog *widget.Entry, downsLog string)
 
 		resp, err := http.Get(url)
 		if err != nil {
-			slog.Error("Get: 失败", err)
+			Glog("ERROR", "assetsDownload", "err", err)
 		}
 		defer resp.Body.Close()
 
 		errMkDir := os.MkdirAll(OBJECT_HASH_SAVE_DIR+hash.String()[:2]+"/", 0777)
 		if errMkDir != nil {
-			slog.Error("Mkdir: 失败", errMkDir)
+			Glog("ERROR", "assetsDownload", "errMkDir", errMkDir)
 		}
 
 		objectFiles, errCreate := os.Create(dir)
 		if errCreate != nil {
-			slog.Error("Create: 失败", errCreate)
+			Glog("ERROR", "assetsDownload", "errCreate", errCreate)
 		}
 		defer objectFiles.Close()
 
 		_, errCopy := io.Copy(objectFiles, resp.Body)
 		if errCopy != nil {
-			slog.Error("Copy: 失败", errCopy)
+			Glog("ERROR", "assetsDownload", "errCopy", errCopy)
 		} else {
-			slog.Error("成功")
-			downsLog = downsLog + "\n" + "-> Successfully"
+			slog.Error("Success")
+			downsLog = downsLog + "\n" + "-> Success"
 			entry_Down_sLog.SetText(downsLog)
 		}
 	}
@@ -190,7 +194,7 @@ func assetsDownload(path string, entry_Down_sLog *widget.Entry, downsLog string)
 func GetGameJar(version, path string) {
 	jsonFile, errRead := os.ReadFile(path)
 	if errRead != nil {
-		slog.Error("解析"+path+"失败", errRead)
+		Glog("ERROR", "GetGameJar", "errRead", errRead)
 	}
 
 	gameUrl := gjson.Get(string(jsonFile), "downloads.client.url")
@@ -198,28 +202,28 @@ func GetGameJar(version, path string) {
 
 	resp, err := http.Get(gameUrl.String())
 	if err != nil {
-		slog.Error("Get: 失败", err)
+		Glog("ERROR", "GetGameJar", "err", err)
 	}
 	defer resp.Body.Close()
 
 	gameFile, errCreate := os.Create("./.minecraft/versions/" + version + "/" + version + ".jar")
 	if errCreate != nil {
-		slog.Error("Create: 失败", errCreate)
+		Glog("ERROR", "GetGameJar", "errCreate", errCreate)
 	}
 	defer gameFile.Close()
 
 	_, errCopy := io.Copy(gameFile, resp.Body)
 	if errCopy != nil {
-		slog.Error("Copy: 失败", errCopy)
+		Glog("ERROR", "GetGameJar", "errCopy", errCopy)
 	} else {
-		slog.Info("成功")
+		slog.Info("Success")
 	}
 }
 
 func GetLibraries(version, path string) {
 	jsonFile, errRead := os.ReadFile(path)
 	if errRead != nil {
-		slog.Error("解析"+path+"失败", errRead)
+		Glog("ERROR", "GetLibraries", "errRead", errRead)
 	}
 
 	libUrl := gjson.Get(string(jsonFile), "libraries.@dig:url") // 获取资源 Url
@@ -234,7 +238,7 @@ func GetGameList() (gameListRelease *[]string, gameListSnapshot *[]string) {
 
 	jsonFile, errReadJson := os.ReadFile("./.gmcl/version_manifest.json")
 	if errReadJson != nil {
-		slog.Error("读取失败", errReadJson)
+		Glog("ERROR", "GetGameList", "errReadJson", errReadJson)
 	}
 
 	ListRelease := &[]string{}
