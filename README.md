@@ -16,6 +16,10 @@ tar -zxvf go-mcl-[System]-[Arch]-[Version] # 请根据实际替换[]及其内容
 
 ### 从源码安装
 
+### 依赖安装
+各系统所需的软件包请看[Getting Started](https://docs.fyne.io/started/)
+
+### 编译
 ``````bash
 git clone https://github.com/inuyasha-660/GMCL.git && cd GMCL
 go mod download

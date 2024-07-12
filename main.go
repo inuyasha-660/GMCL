@@ -192,7 +192,7 @@ func main() {
 			utils.DownloadsGmae(GameVersionChoose.Version, false, "", dowmWin)
 		})
 
-		buuton_Mods := widget.NewButton("Mods", func() {
+		buuton_Mods := widget.NewButton("Mod Loader", func() {
 			utils.ModSet(dowmWin, GameVersionChoose.Version)
 		})
 

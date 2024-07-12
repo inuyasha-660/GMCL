@@ -48,7 +48,8 @@ func GetVersionJson() {
 
 // Json 下载
 func DownloadsGmae(Version string, forge bool, forgeVersion string, downWin fyne.Window) {
-	slog.Info("Start Downloading, Target: " + Version)
+	slog.Info("Start Downloading")
+	slog.Info("Target: " + "Minecraft Version: " + Version + " Forge: " + strconv.FormatBool(forge) + " Forge Version: " + forgeVersion)
 	var downsLog string
 	entry_Down_sLog := widget.NewEntry() // 下载日志
 	entry_Down_sLog.MultiLine = true     // 多行
