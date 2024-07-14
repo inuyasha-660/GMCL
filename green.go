@@ -28,7 +28,6 @@ func (m Forgive_Green) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant
 }
 
 func (m Forgive_Green) Icon(name fyne.ThemeIconName) fyne.Resource {
-
 	return theme.DefaultTheme().Icon(name)
 }
 

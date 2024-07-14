@@ -121,23 +121,23 @@ func main() {
 		input_UserName := widget.NewEntry()
 		input_UserName.SetPlaceHolder("UserName")
 
-		input_UUID := widget.NewEntry()
-		input_UUID.SetPlaceHolder("UUID")
+		label_LoginTime := widget.NewLabel("Login Time: ")
 
 		label_LoginLog := widget.NewLabel("")
 
 		button_Login := widget.NewButton("Login", func() {
 			ifSuccess := CreateUserToml(input_UserName.Text)
 			if ifSuccess {
+				label_LoginTime.SetText("Login time: " + time.Now().Format("2006-01-02 15:04:05"))
 				label_LoginLog.SetText("Login Succeeded" + "\n" + "Please restart GMCL")
 			} else {
 				label_LoginLog.SetText("Login failed")
 			}
 		})
 
-		content_Login := container.NewVBox(input_UserName, input_UUID, button_Login, label_LoginLog)
+		content_Login := container.NewVBox(input_UserName, label_LoginTime, button_Login, label_LoginLog)
 		loginWin.SetContent(content_Login)
-		loginWin.Resize(fyne.NewSize(200, 250))
+		loginWin.Resize(fyne.NewSize(250, 300))
 		loginWin.Show()
 	}))
 
@@ -416,7 +416,7 @@ func CreateUserToml(userName string) bool {
 }
 
 // 读取用户配置
-func ReadUserToml() (toml_UserNmae string, toml_LoginDate string) {
+func ReadUserToml() (toml_UserNmae, toml_LoginDate string) {
 	var UserToml UserToml
 
 	toml_UserFile, errRead := os.ReadFile("./.gmcl/user.toml")
