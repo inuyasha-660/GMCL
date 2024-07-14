@@ -69,8 +69,8 @@ func init() {
 
 func main() {
 
-	hmcl := app.New()
-	hmcl.SetIcon(resources.ResourceIconSvg) // 设置 icon.svg 图标
+	gmcl := app.New()
+	gmcl.SetIcon(resources.ResourceIconSvg) // 设置 icon.svg 图标
 
 	// 读取设置的主题
 	var UserTheme UserToml
@@ -88,26 +88,26 @@ func main() {
 	switch UserTheme.ThemeColor {
 	case "Forgive-Green":
 		{
-			hmcl.Settings().SetTheme(&Forgive_Green{})
+			gmcl.Settings().SetTheme(&Forgive_Green{})
 		}
 	case "Dark":
 		{
-			hmcl.Settings().SetTheme(&Dark{})
+			gmcl.Settings().SetTheme(&Dark{})
 		}
 	case "Bili-Pink":
 		{
-			hmcl.Settings().SetTheme(&Bili_Pink{})
+			gmcl.Settings().SetTheme(&Bili_Pink{})
 		}
 	default:
 		{
 			errSetTheme := errors.New("matched theme failed")
 			utils.Glog("WARN", "main", "errSetTheme", errSetTheme)
-			hmcl.Settings().SetTheme(theme.DefaultTheme())
+			gmcl.Settings().SetTheme(theme.DefaultTheme())
 		}
 	}
 
-	hmclWindow_Main := hmcl.NewWindow("HMCL - 1.0.0")
-	hmclWindow_Main.SetMaster() // 设置为主窗口
+	gmclWindow_Main := gmcl.NewWindow("GMCL - 1.0.0")
+	gmclWindow_Main.SetMaster() // 设置为主窗口
 
 	// Home页头像
 	image_Author := canvas.NewImageFromResource(theme.AccountIcon())
@@ -116,7 +116,7 @@ func main() {
 
 	// 用户登陆
 	button_Login := container.NewVBox(widget.NewButton("Login in", func() {
-		loginWin := hmcl.NewWindow("Login in")
+		loginWin := gmcl.NewWindow("Login in")
 
 		input_UserName := widget.NewEntry()
 		input_UserName.SetPlaceHolder("UserName")
@@ -163,7 +163,7 @@ func main() {
 
 	// 下载游戏
 	button_Down_Game := container.NewVBox(widget.NewButton(DownGame, func() {
-		dowmWin := hmcl.NewWindow("Download Game")
+		dowmWin := gmcl.NewWindow("Download Game")
 
 		// 游戏版本选择
 		gameListRelease_Indicator, gameListSnapshot_Indicator := utils.GetGameList()
@@ -292,24 +292,24 @@ func main() {
 		switch UserTheme.ThemeColor {
 		case "Forgive-Green":
 			{
-				hmcl.Settings().SetTheme(&Forgive_Green{})
+				gmcl.Settings().SetTheme(&Forgive_Green{})
 				slog.Info("Theme: " + UserTheme.ThemeColor + " Set success")
 			}
 		case "Dark":
 			{
-				hmcl.Settings().SetTheme(&Dark{})
+				gmcl.Settings().SetTheme(&Dark{})
 				slog.Info("Theme: " + UserTheme.ThemeColor + " Set success")
 			}
 		case "Bili-Pink":
 			{
-				hmcl.Settings().SetTheme(&Bili_Pink{})
+				gmcl.Settings().SetTheme(&Bili_Pink{})
 				slog.Info("Theme: " + UserTheme.ThemeColor + " Set success")
 			}
 		default:
 			{
 				errSetTheme_button := errors.New("matched theme failed")
 				utils.Glog("WARN", "main", "errSetTheme_button", errSetTheme_button)
-				hmcl.Settings().SetTheme(theme.DefaultTheme())
+				gmcl.Settings().SetTheme(theme.DefaultTheme())
 			}
 		}
 	}))
@@ -335,7 +335,7 @@ func main() {
 	link_Author_Github := widget.NewHyperlink("Github", parseURL("https://github.com/inuyasha-660"))
 	label_Author := container.NewBorder(nil, nil, widget.NewLabel("Inuyasha-660"), link_Author_Github)
 
-	label_BuildDate := widget.NewLabel("Build Date: 2024-04-26 20:36") // TODO: 构建时修改
+	label_BuildDate := widget.NewLabel("Build Date: 2024-07-14 14:10") // TODO: 构建时修改
 
 	label_AppInfo := container.NewVBox(label_Gmcl, label_Author, label_BuildDate)
 
@@ -358,10 +358,10 @@ func main() {
 	homeTabs.SetTabLocation(container.TabLocationLeading)
 	content := container.NewBorder(nil, nil, homeTabs, nil)
 
-	hmclWindow_Main.SetContent(content)
-	hmclWindow_Main.Resize(fyne.NewSize(800, 500))
-	hmclWindow_Main.Show()
-	hmcl.Run()
+	gmclWindow_Main.SetContent(content)
+	gmclWindow_Main.Resize(fyne.NewSize(800, 500))
+	gmclWindow_Main.Show()
+	gmcl.Run()
 }
 
 // 显示 Url
