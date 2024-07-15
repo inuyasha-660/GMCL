@@ -15,6 +15,7 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/pelletier/go-toml/v2"
@@ -35,8 +36,14 @@ const EXIT = `
 const DownGame = `
  	Downloads Game    
  `
+const HANDBOOK_FIRST = `
+1. Download Version json
+before Clicking Download 
+Game.`
 
-const RUNNING_LOG_LINE = `---------------------------`
+const HANDBOOK_SECOND = `
+2. Select a version below 
+before launching game.`
 
 type UserToml struct {
 	UserName   string
@@ -151,12 +158,26 @@ func main() {
 
 	list_DeviceInfo := container.NewVBox(image_Author, lable_User)
 
-	// Home页运行日志
-	lable_Log_Path := widget.NewLabel("Running Path: " + "\n" + GetPATH())
-	lable_Log := container.NewVBox(widget.NewLabel("Running Log"+"\n"+RUNNING_LOG_LINE), lable_Log_Path) // TODO: 修改为游戏版本检测
+	// 主页游戏版本扫描
+	var LaunchVersion string
+	VersionList := utils.VersionScan(".minecraft/versions/") // 获取扫描结果
+
+	entry_GameList := widget.NewEntry()
+	entry_GameList.MultiLine = true
+	entry_GameList.SetText("HandBook" + "\n" + "-----------------" + HANDBOOK_FIRST + "\n" + HANDBOOK_SECOND)
+
+	// 启动版本选择
+	select_LaunchVersion := widget.NewSelect(*VersionList, func(launchVersionChoose string) {
+		LaunchVersion = launchVersionChoose
+		slog.Info("Launch version: " + LaunchVersion)
+	})
+
+	content_entry_GameList := container.NewVBox(container.New(layout.NewGridWrapLayout(fyne.NewSize(200, 250)), entry_GameList), select_LaunchVersion)
 
 	// 启动游戏
-	button_LaunchGame := container.NewVBox(widget.NewButton(LAUNCH_GAME, utils.LaunchCheck))
+	button_LaunchGame := container.NewVBox(widget.NewButton(LAUNCH_GAME, func() {
+		utils.LaunchCheck(LaunchVersion)
+	}))
 
 	// 下载 version_manifest.json
 	button_Down_Version_Json := container.NewVBox(widget.NewButton(Downloads_Version_Json, utils.GetVersionJson))
@@ -346,9 +367,9 @@ func main() {
 	// AppTabs
 	homeTabs := container.NewAppTabs(
 		container.NewTabItemWithIcon("Home", theme.HomeIcon(), container.NewBorder(nil, nil,
-			list_DeviceInfo, // 用户/设备信息
-			lable_Log,       // 运行日志
-			button_All,      // 显示所有按钮
+			list_DeviceInfo,        // 用户/设备信息
+			content_entry_GameList, // 运行日志
+			button_All,             // 显示所有按钮
 		)),
 		// container.NewTabItem("Home", container.NewVBox(button_LaunchGame)),
 		container.NewTabItemWithIcon("Settings", theme.SettingsIcon(), container.NewBorder(nil, nil, content_Settings, content_AppInfo)), // 注释为不带图标Tabs

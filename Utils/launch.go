@@ -10,8 +10,33 @@ import (
 )
 
 // 依赖检测
-func LaunchCheck() {
-	slog.Info("Check Java")
+func LaunchCheck(VersionChoose string) {
+	if okVersion := CheckVersion(VersionChoose); okVersion {
+		if okJava := CheckJava(); okJava {
+			createScript()
+		} else {
+			slog.Error("Abort to launch with errors in checking Java")
+		}
+	} else {
+		slog.Error("Abort to launch with errors in checking version")
+	}
+
+}
+
+// 启动版本选择检测
+func CheckVersion(VersionChoose string) bool {
+	if VersionChoose == "" {
+		slog.Error("Fail to read launch version: " + VersionChoose)
+		return false
+	} else {
+		slog.Info("Start to launch, version: " + VersionChoose)
+		return true
+	}
+
+}
+
+// Java检测
+func CheckJava() bool {
 	launch := exec.Command("java", "--version")
 	var stdout, stderr bytes.Buffer
 	launch.Stdout = &stdout
@@ -24,11 +49,11 @@ func LaunchCheck() {
 	javaVersionOut, javaVersionErr := stdout.String(), stderr.String()
 	if javaVersionErr != "" {
 		slog.Info(javaVersionErr)
+		return false
 	} else {
 		fmt.Println(javaVersionOut)
-		createScript()
+		return true
 	}
-
 }
 
 // 创建启动脚本
@@ -38,7 +63,7 @@ func createScript() {
 	if err != nil {
 		Glog("ERROR", "createScrip", "err", err)
 	} else {
-		slog.Info("Success")
+		slog.Info("Create Success")
 	}
 	defer launchSh.Close()
 
@@ -48,7 +73,7 @@ func createScript() {
 	if errWrite != nil {
 		Glog("ERROR", "createScrip", "errWrite", errWrite)
 	} else {
-		slog.Info("Success")
+		slog.Info("write Success")
 		launchGame()
 	}
 }
