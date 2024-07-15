@@ -8,11 +8,10 @@
 - [x] 资源文件下载
 - [x] Forge安装
 - [ ] 依赖库文件下载
-- [ ] natives库文件下载
 - [ ] 启动脚本生成
 
 ## 截图
-![Home](./Resources/gmcl-home.png)
+![Home](./Resources/GMCL-homeScreenshot.png)
 
 ## 安装
 
