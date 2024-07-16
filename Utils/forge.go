@@ -28,37 +28,6 @@ const FORGE_GET = `https://bmclapi2.bangbang93.com/forge/download/`
 
 var RespRead []byte // 用于储存读取后的 resp.Body
 
-// version string: forge版本
-func InstallForge(version string) {
-	if ok := JavaCheck(); ok {
-		slog.Info("Start installing Forge")
-		GetForge(version)
-	} else {
-		slog.Info("Installation failed")
-	}
-}
-
-func JavaCheck() bool {
-	java := exec.Command("java", " --version")
-	var stdout, stderr bytes.Buffer
-	java.Stdout = &stdout
-	java.Stderr = &stderr
-	err := java.Run()
-	if err != nil {
-		Glog("ERROR", "JavaCheck", "err", err)
-		return false
-	}
-
-	javaVersion, errGet := stdout.String(), stderr.String()
-	if errGet != "" {
-		Glog("ERROR", "JavaCheck", "err", err)
-		return false
-	} else {
-		fmt.Println(javaVersion)
-		return true
-	}
-}
-
 // version string: Forge 版本
 func GetForge(version string) {
 	buildForge := gjson.Get(string(RespRead), `#(version="`+version+`").build`)
@@ -72,7 +41,7 @@ func GetForge(version string) {
 	}
 	defer resp.Body.Close()
 
-	JarPath := "./forge-" + version + "-installer.jar"
+	JarPath := ".minecraft/forge-" + version + "-installer.jar"
 	jar, errCreate := os.Create(JarPath)
 	if errCreate != nil {
 		Glog("ERROR", "GetForge", "errCreate", errCreate)
@@ -83,14 +52,43 @@ func GetForge(version string) {
 	if errCopy != nil {
 		Glog("ERROR", "GetForge", "errCopy", errCopy)
 	} else {
-		slog.Info("Download completed, Start to install Forge")
-		InstallJar(JarPath)
+		slog.Info("Download completed, Start to Write launcher_profiles.json")
+		ProfilesWriter(JarPath)
 	}
 
 }
 
+func ProfilesWriter(JarPath string) {
+	file, errCreate := os.Create(".minecraft/launcher_profiles.json")
+	if errCreate != nil {
+		Glog("ERROR", "ProfilesWriter", "errCreate", errCreate)
+	}
+
+	_, err := file.WriteString(`{
+    "profiles": {
+        "(Default)": {
+            "name": "(Default)"
+        }
+    },
+    "selectedProfileName": "(Default)",
+}
+	`)
+	if err != nil {
+		Glog("ERROR", "ProfilesWriter", "err", err)
+	} else {
+
+		slog.Info("Write Completed, Start to Install Forge")
+		InstallJar(JarPath)
+	}
+}
+
 func InstallJar(path string) {
-	install := exec.Command("java", "-jar", path, "nogui", "--installClient")
+	installPath, errGetwd := os.Getwd()
+	if errGetwd != nil {
+		Glog("ERROR", "InstallJar", "errGetwd", errGetwd)
+	}
+
+	install := exec.Command("java", "-jar", path, "nogui", "--installClient", installPath+"/.minecraft")
 	var stdout, stderr bytes.Buffer
 	install.Stdout = &stdout
 	install.Stderr = &stderr
@@ -157,8 +155,7 @@ func ModSet(downWin fyne.Window, version string) {
 	label_MinecraftVersion := widget.NewLabel("Minecraft Version: " + GameChoose.MineVersion)
 
 	button_DownloadWithMods := widget.NewButton("Download", func() {
-		//	DownloadsGmae(GameChoose.MineVersion, true, GameChoose.ForgeVersion, downWin)
-		GetForge(GameChoose.ForgeVersion)
+		DownloadsGmae(GameChoose.MineVersion, true, GameChoose.ForgeVersion, downWin)
 	})
 
 	content_DownWithMods := container.NewVBox(lable_ForgeVersion, Select_ForgeVersion, label_MinecraftVersion, label_ForgeVersion, button_DownloadWithMods)
