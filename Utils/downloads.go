@@ -270,7 +270,31 @@ func GetLibraries(version, path string, entry_Down_sLog *widget.Entry, downsLog 
 		}
 
 	}
-	downsLog = downsLog + "\n" + "Download completed" + "\n" + "You can close the window"
+
+	downsLog = downsLog + "\n" + "Download Libraries Completed" + "\n" + " Start Downloading log4j2.xml"
+	entry_Down_sLog.SetText(downsLog)
+
+	urlLog := gjson.Get(string(jsonFile), `logging.client.file.url`)
+
+	respLog, errLog := http.Get(urlLog.String())
+	if errLog != nil {
+		Glog("ERROR", "GetLibraries", "errLog", errLog)
+	}
+	defer respLog.Body.Close()
+
+	logDown, errLogCreate := os.Create(".minecraft/versions/" + version + "/log4j2.xml")
+	if errLogCreate != nil {
+		Glog("ERROR", "GetLibraries", "errLogCreate", errLogCreate)
+	}
+
+	_, errLogCopy := io.Copy(logDown, respLog.Body)
+	if errLogCopy != nil {
+		Glog("ERROR", "GetLibraries", "errLogCopy", errLogCopy)
+	} else {
+		downsLog = downsLog + "\n" + "Download log4j2.xml completed"
+	}
+
+	downsLog = downsLog + "\n" + "All downloaded completed" + "\n" + "You can close the window"
 	entry_Down_sLog.SetText(downsLog)
 
 }
