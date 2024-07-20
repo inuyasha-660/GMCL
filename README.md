@@ -1,17 +1,17 @@
 ## GO-minecraft-launcher
 一个使用``Go``编写的，适用于``*nix``的 Gui 离线我的世界启动器
 
-## 开发进度
+## Features
 - [x] 用户登陆
 - [x] 主题设置
-- [x] 游戏主文件下载
-- [x] 资源文件下载
-- [x] Forge安装
-- [x] 依赖库文件下载
-- [ ] 启动脚本生成
+- [x] Mod loader支持(Forge)
+- [x] 广泛的游戏版本可选
+- [ ] 自定义启动参数
 
 ## 截图
 ![Home](./Resources/GMCL-homeScreenshot.png)
+
+**Text in GMCL is translated by Google.**
 
 ## 安装
 
