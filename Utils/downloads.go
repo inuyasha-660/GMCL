@@ -271,7 +271,7 @@ func GetLibraries(version, path string, entry_Down_sLog *widget.Entry, downsLog 
 
 	}
 
-	downsLog = downsLog + "\n" + "Download Libraries Completed" + "\n" + " Start Downloading log4j2.xml"
+	downsLog = downsLog + "\n" + "Download Libraries Completed" + "\n" + " Start Downloading client-1.12.xml"
 	entry_Down_sLog.SetText(downsLog)
 
 	urlLog := gjson.Get(string(jsonFile), `logging.client.file.url`)
@@ -282,7 +282,7 @@ func GetLibraries(version, path string, entry_Down_sLog *widget.Entry, downsLog 
 	}
 	defer respLog.Body.Close()
 
-	logDown, errLogCreate := os.Create(".minecraft/versions/" + version + "/log4j2.xml")
+	logDown, errLogCreate := os.Create(".minecraft/versions/" + version + "/client-1.12.xml")
 	if errLogCreate != nil {
 		Glog("ERROR", "GetLibraries", "errLogCreate", errLogCreate)
 	}

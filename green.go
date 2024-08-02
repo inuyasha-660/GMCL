@@ -7,11 +7,11 @@ import (
 	"fyne.io/fyne/v2/theme"
 )
 
-type Forgive_Green struct{}
+type Green struct{}
 
-var _ fyne.Theme = (*Forgive_Green)(nil)
+var _ fyne.Theme = (*Green)(nil)
 
-func (m Forgive_Green) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
+func (m Green) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
 	if name == theme.ColorNameBackground {
 		if variant == theme.VariantLight {
 			return color.White
@@ -27,14 +27,14 @@ func (m Forgive_Green) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant
 	return theme.DefaultTheme().Color(name, variant)
 }
 
-func (m Forgive_Green) Icon(name fyne.ThemeIconName) fyne.Resource {
+func (m Green) Icon(name fyne.ThemeIconName) fyne.Resource {
 	return theme.DefaultTheme().Icon(name)
 }
 
-func (m Forgive_Green) Font(style fyne.TextStyle) fyne.Resource {
+func (m Green) Font(style fyne.TextStyle) fyne.Resource {
 	return theme.DefaultTheme().Font(style)
 }
 
-func (m Forgive_Green) Size(name fyne.ThemeSizeName) float32 {
+func (m Green) Size(name fyne.ThemeSizeName) float32 {
 	return theme.DefaultTheme().Size(name)
 }

@@ -36,14 +36,10 @@ const EXIT = `
 const DownGame = `
  	Downloads Game    
  `
-const HANDBOOK_FIRST = `
-1. Download Version json
-before Clicking Download 
-Game.`
 
-const HANDBOOK_SECOND = `
-2. Select a version below 
-before launching game.`
+const VERSION = `0.9.0`
+
+const BUILD_DATE = `2024-08-01 10:56`
 
 type UserToml struct {
 	UserName   string
@@ -93,9 +89,9 @@ func main() {
 	}
 
 	switch UserTheme.ThemeColor {
-	case "Forgive-Green":
+	case "Green":
 		{
-			gmcl.Settings().SetTheme(&Forgive_Green{})
+			gmcl.Settings().SetTheme(&Green{})
 		}
 	case "Dark":
 		{
@@ -113,7 +109,7 @@ func main() {
 		}
 	}
 
-	gmclWindow_Main := gmcl.NewWindow("GMCL - 1.0.0")
+	gmclWindow_Main := gmcl.NewWindow("GMCL - " + VERSION)
 	gmclWindow_Main.SetMaster() // 设置为主窗口
 
 	// Home页头像
@@ -162,21 +158,19 @@ func main() {
 	var LaunchVersion string
 	VersionList := utils.VersionScan(".minecraft/versions/") // 获取扫描结果
 
-	entry_GameList := widget.NewEntry()
-	entry_GameList.MultiLine = true
-	entry_GameList.SetText("HandBook" + "\n" + "-----------------" + HANDBOOK_FIRST + "\n" + HANDBOOK_SECOND)
-
 	// 启动版本选择
+	label_ChooseVersion := widget.NewLabel("Launch Version: ")
+
 	select_LaunchVersion := widget.NewSelect(*VersionList, func(launchVersionChoose string) {
 		LaunchVersion = launchVersionChoose
 		slog.Info("Launch version: " + LaunchVersion)
 	})
 
-	content_entry_GameList := container.NewVBox(container.New(layout.NewGridWrapLayout(fyne.NewSize(200, 250)), entry_GameList), select_LaunchVersion)
+	content_entry_GameList := container.NewVBox(container.New(layout.NewGridWrapLayout(fyne.NewSize(200, 0))), label_ChooseVersion, select_LaunchVersion)
 
 	// 启动游戏
 	button_LaunchGame := container.NewVBox(widget.NewButton(LAUNCH_GAME, func() {
-		utils.LaunchCheck(LaunchVersion)
+		utils.LaunchCheck(LaunchVersion, toml_UserNmae)
 	}))
 
 	// 下载 version_manifest.json
@@ -236,11 +230,17 @@ func main() {
 
 	button_CreDefLauToml := container.NewVBox(widget.NewButton("Create Launch toml", func() {
 		slog.Info("Start generating")
-		lable_CreDefLauToml.SetText("Create Successfully")
+		if ok := utils.CreateLaunchToml(toml_UserNmae); ok {
+			lable_CreDefLauToml.SetText("Create success")
+			slog.Info("Create success")
+		} else {
+			lable_CreDefLauToml.SetText("Create failed")
+			slog.Error("Create failed")
+		}
 	}))
 
 	// 左边组件
-	choices_Settings := container.NewVBox(widget.NewSelect([]string{"Dark", "Forgive-Green", "Bili-Pink"}, func(color string) {
+	choices_Settings := container.NewVBox(widget.NewSelect([]string{"Dark", "Green", "Bili-Pink"}, func(color string) {
 		toml_Theme, err := os.OpenFile("./.gmcl/user.toml", os.O_WRONLY|os.O_CREATE, os.ModePerm)
 		if err != nil {
 			utils.Glog("ERROR", "main", "err", err)
@@ -288,7 +288,7 @@ func main() {
 				utils.Glog("ERROR", "main", "errWriteDate", errWriteDate)
 			}
 			_, errWriteTheme := toml_Theme.WriteString("\n" + "ThemeColor = " + `"` + color + `"` + `         `)
-			// `     ` - 空格作用: 避免 "Dark/Bili-Pink"主题长度不够导致未能完全覆盖 "Forgive-Green"主题
+			// `     ` - 空格作用: 完全覆盖原本主题配置
 			if errWriteTheme != nil {
 				utils.Glog("ERROR", "main", "errWriteTheme", errWriteTheme)
 			}
@@ -311,9 +311,9 @@ func main() {
 		}
 
 		switch UserTheme.ThemeColor {
-		case "Forgive-Green":
+		case "Green":
 			{
-				gmcl.Settings().SetTheme(&Forgive_Green{})
+				gmcl.Settings().SetTheme(&Green{})
 				slog.Info("Theme: " + UserTheme.ThemeColor + " Set success")
 			}
 		case "Dark":
@@ -351,12 +351,12 @@ func main() {
 	image_Icon.SetMinSize(fyne.NewSize(50, 50))
 
 	link_Gmcl_Github := widget.NewHyperlink("Github", parseURL("https://github.com/inuyasha-660/GMCL"))
-	label_Gmcl := container.NewBorder(nil, nil, widget.NewLabel("GMCL - 1.0.0"), link_Gmcl_Github)
+	label_Gmcl := container.NewBorder(nil, nil, widget.NewLabel("GMCL - "+VERSION), link_Gmcl_Github)
 
 	link_Author_Github := widget.NewHyperlink("Github", parseURL("https://github.com/inuyasha-660"))
-	label_Author := container.NewBorder(nil, nil, widget.NewLabel("Inuyasha-660"), link_Author_Github)
+	label_Author := container.NewBorder(nil, nil, widget.NewLabel("sorgDream"), link_Author_Github)
 
-	label_BuildDate := widget.NewLabel("Build Date: 2024-07-14 14:10") // TODO: 构建时修改
+	label_BuildDate := widget.NewLabel("Build Date: " + BUILD_DATE)
 
 	label_AppInfo := container.NewVBox(label_Gmcl, label_Author, label_BuildDate)
 

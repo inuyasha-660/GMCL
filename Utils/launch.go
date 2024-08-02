@@ -9,10 +9,21 @@ import (
 	"path"
 	"runtime"
 	"strings"
-	"time"
+
+	"github.com/tidwall/gjson"
 )
 
 const SCRIPT_BASH = `#!/usr/bin/env bash`
+
+const LAUNCH_TOML_DEFALUT_JVM = `java -Xmx1024m -Xmn128m -XX:+UseG1GC -XX:-UseAdaptiveSizePolicy -XX:-OmitStackTraceInFastThrow`
+
+const LAUNCH_TOML_LAUNCH_NAME = ` -Dminecraft.launcher.brand=GMCL -Dminecraft.launcher.version=0.9.0 `
+
+const LAUNCH_TOML_LOG_FILE = ` -Dlog4j.configurationFile=.minecraft/versions/`
+
+const MINECRAFT_NO_MOD = ` net.minecraft.client.main.Main `
+
+const MINECRAFT_WITH_MOD = `net.minecraft.launchwrapper.Launch `
 
 var NATIVES_JAR_LINUX_X64 = map[string]string{
 	`libglfw.so`:         `.minecraft/libraries/org/lwjgl/lwjgl-glfw/*/lwjgl-glfw-*-natives-linux.jar`,
@@ -42,10 +53,16 @@ var NATIVES_JAR_MACOS_ARM64 = map[string]string{
 }
 
 // 依赖检测
-func LaunchCheck(VersionChoose string) {
+func LaunchCheck(VersionChoose, userName string) {
 	if okVersion := CheckVersion(VersionChoose); okVersion {
 		if okJava := CheckJava(); okJava {
-			UnzipJar(VersionChoose)
+			dir := strings.TrimSuffix(VersionChoose, path.Ext(VersionChoose))
+			MkdirPath := ".minecraft/versions/" + dir + "/natives-" + runtime.GOOS + "-" + runtime.GOARCH
+			if ok := CheckIfExist(MkdirPath); ok {
+				readLaunchToml(dir, MkdirPath, userName)
+			} else {
+				UnzipJar(VersionChoose, userName)
+			}
 		} else {
 			slog.Error("Abort to launch with errors in checking Java")
 		}
@@ -54,6 +71,8 @@ func LaunchCheck(VersionChoose string) {
 	}
 
 }
+
+// TODO: 检测 Natives库文件是否存在，存在则跳过解压否则进行解压
 
 // 启动版本选择检测
 func CheckVersion(VersionChoose string) bool {
@@ -89,12 +108,12 @@ func CheckJava() bool {
 }
 
 // 解压所需 natives 文件
-func UnzipJar(version string) {
+func UnzipJar(version, userName string) {
 	system := runtime.GOOS
 	arch := runtime.GOARCH
 
-	dir := strings.TrimSuffix(version, path.Ext(version))
-	MkdirPath := ".minecraft/versions/" + dir + "/natives-" + system + "-" + arch
+	dir := strings.TrimSuffix(version, path.Ext(version))                         // 去除拓展名的游戏Jar文件，类似: 1.21(1.21.jar)
+	MkdirPath := ".minecraft/versions/" + dir + "/natives-" + system + "-" + arch // Natives目录
 	errMkdir := os.MkdirAll(MkdirPath, 0777)
 	if errMkdir != nil {
 		Glog("ERROR", "UnzipCmd", "errMkdir", errMkdir)
@@ -127,7 +146,7 @@ func UnzipJar(version string) {
 				slog.Info("Run the unzip script")
 				UnzipCmd()
 
-				createScript()
+				readLaunchToml(dir, MkdirPath, userName)
 
 			} else {
 				slog.Error("Unsupported Architecture" + arch)
@@ -159,7 +178,7 @@ func UnzipJar(version string) {
 				slog.Info("Run the unzip script")
 				UnzipCmd()
 
-				createScript()
+				readLaunchToml(dir, MkdirPath, userName)
 
 			} else {
 				slog.Info("Create unzip natives script")
@@ -185,7 +204,7 @@ func UnzipJar(version string) {
 				slog.Info("Run the unzip script")
 				UnzipCmd()
 
-				createScript()
+				readLaunchToml(dir, MkdirPath, userName)
 
 			}
 		}
@@ -232,8 +251,46 @@ func UnzipCmd() {
 
 }
 
+// 读取用户配置，若不存在则使用默认配置
+func readLaunchToml(dir, MkdirPath, userName string) {
+	slog.Info("Create/Read Configuration")
+	var toml string
+
+	if ok := CheckIfExist("./.gmcl/launch.toml"); ok {
+		slog.Info("Read configuration from ./.gmcl/launch.toml")
+
+		createScript(toml)
+	} else {
+		slog.Info("Using the default configuration")
+		userNameMd5 := Md5Create(userName)
+		// TODO: Mod 加载器启动支持
+		uuid := userNameMd5[:8] + "-" + userNameMd5[8:12] + "-" + userNameMd5[12:16] + "-" + userNameMd5[16:20] + "-" + userNameMd5[20:]
+		cpArtifact := readArtifact(dir)
+		toml = LAUNCH_TOML_DEFALUT_JVM + LAUNCH_TOML_LAUNCH_NAME + LAUNCH_TOML_LOG_FILE + dir + "/client-1.12.xml" +
+			" -Djava.library.path=" + MkdirPath + " -cp " + cpArtifact + ".minecraft/versions/" + dir + "/" + dir + ".jar " + MINECRAFT_NO_MOD + " --username " + userName + " --version " + dir + " --gameDir .minecraft/versions/" +
+			dir + " --assetsDir .minecraft/assets/ " + "--accessToken 123456qwert" + " --assetIndex 17 " + "--uuid " + uuid + " --width 1800 " + "--height 1000"
+		createScript(toml)
+	}
+
+}
+
+// Version: 不含 .jar 拓展名
+func readArtifact(version string) string {
+	var pathGet string
+	versionJson, err := os.ReadFile(".minecraft/versions/" + version + "/" + version + ".json")
+	if err != nil {
+		Glog("ERROR", "readArtifact", "err", err)
+	}
+
+	libPath := gjson.Get(string(versionJson), "libraries.@dig:path")
+	for _, path := range libPath.Array() {
+		pathGet = pathGet + ".minecraft/libraries/" + path.String() + ":"
+	}
+	return pathGet
+}
+
 // 创建启动脚本
-func createScript() {
+func createScript(toml string) {
 	slog.Info("Create and write launch script")
 	launchSh, err := os.Create("./.gmcl/launch.sh")
 	if err != nil {
@@ -245,7 +302,8 @@ func createScript() {
 
 	os.Chmod("./.gmcl/launch.sh", 0777)
 
-	_, errWrite := launchSh.WriteString(`# Create Date: ` + time.Now().Format("2006-01-02 15:04:05") + "\n" + ` echo "Hello world"`)
+	_, errWrite := launchSh.WriteString(toml)
+
 	if errWrite != nil {
 		Glog("ERROR", "createScrip", "errWrite", errWrite)
 	} else {
@@ -256,10 +314,12 @@ func createScript() {
 
 // 执行脚本
 func launchGame() {
+	slog.Info("Start launching game")
 	launch := exec.Command("bash", ".gmcl/launch.sh")
 	var stdout, stderr bytes.Buffer
 	launch.Stdout = &stdout
 	launch.Stderr = &stderr
+
 	err := launch.Run()
 	if err != nil {
 		slog.Error(err.Error())
