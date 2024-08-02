@@ -39,7 +39,7 @@ const DownGame = `
 
 const VERSION = `0.9.0`
 
-const BUILD_DATE = `2024-08-01 10:56`
+const BUILD_DATE = `2024-08-02 22:24`
 
 type UserToml struct {
 	UserName   string
