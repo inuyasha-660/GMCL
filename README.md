@@ -17,10 +17,12 @@
 ``unzip``和``bash``将被用于解压/执行脚本，确保系统已安装并添加到``PATH``
 
 ### 使用预编译包
-到[Releases](https://github.com/inuyasha-660/GMCL/releases)处选择版本并下载对应架构压缩包
+**仅提供``linux-amd64``预编译包**
+
+到[Releases](https://github.com/inuyasha-660/GMCL/releases)处下载``go-mcl-linux-amd64.tar.gz``压缩包
 
 ``````bash
-tar -zxvf go-mcl-[System]-[Arch]-[Version].tar.gz # 请根据实际替换[]及其内容
+tar -zxvf go-mcl-linux-amd64.tar.gz
 ./go-mcl
 ``````
 
