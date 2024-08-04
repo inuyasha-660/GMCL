@@ -6,7 +6,7 @@
 - [x] 主题设置
 - [x] Mod loader支持(Forge)
 - [x] 广泛的游戏版本可选
-- [ ] 自定义启动参数
+- [x] 自定义启动参数
 
 ## 截图
 ![Home](./Resources/GMCL-Home-v0.9.0.png)
@@ -36,3 +36,21 @@ go mod tidy
 go run . # 直接运行
 go build . && ./go-mcl # 编译运行
 ``````
+
+## 自定义配置
+点击设置页``Create Launch toml``生成配置
+
+| Key      |  值类型   | 含义 |
+|----------|----------|-----|
+| Xmx      | string | 最大堆大小 |
+| Xmn      | string | 新生代堆大小 |
+| UseG1GC  |  bool  | 开启G1 |
+| UseAdaptiveSizePolicy | bool | 自动选择年轻代区大小和相应的Survivor区比例 |
+| OmitStackTraceInFastThrow | bool |  省略异常栈信息从而快速抛出 |
+| Width | string | 窗口宽度 |
+| Height | string | 窗口高度 |
+| UUID | string | 用户UUID |
+
+
+## 启动
+出现启动窗口后即可关闭启动器，游戏日志位于``./logs``目录

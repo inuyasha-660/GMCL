@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/pelletier/go-toml/v2"
 	"github.com/tidwall/gjson"
 )
 
@@ -50,6 +51,18 @@ var NATIVES_JAR_MACOS_ARM64 = map[string]string{
 	`liblwjgl_opengl.so`: `.minecraft/libraries/org/lwjgl/lwjgl-opengl/*/lwjgl-opengl-*-natives-macos-arm64.jar`,
 	`liblwjgl_stb.so`:    `.minecraft/libraries/org/lwjgl/lwjgl-stb/*/lwjgl-stb-*-natives-macos-arm64.jar`,
 	`libopenal.so`:       `.minecraft/libraries/org/lwjgl/lwjgl-openal/*/lwjgl-openal-*-natives-macos-arm64.jar`,
+}
+
+type LauncConfig struct {
+	Xmx                       string
+	Xmn                       string
+	UseG1GC                   bool
+	UseAdaptiveSizePolicy     bool
+	OmitStackTraceInFastThrow bool
+
+	Width  string
+	Height string
+	UUID   string
 }
 
 // 依赖检测
@@ -254,22 +267,53 @@ func UnzipCmd() {
 // 读取用户配置，若不存在则使用默认配置
 func readLaunchToml(dir, MkdirPath, userName string) {
 	slog.Info("Create/Read Configuration")
-	var toml string
+	var launchToml string
 
 	if ok := CheckIfExist("./.gmcl/launch.toml"); ok {
 		slog.Info("Read configuration from ./.gmcl/launch.toml")
+		var launchConfig LauncConfig
+		tomlRead, errRead := os.ReadFile("./.gmcl/launch.toml")
+		if errRead != nil {
+			Glog("ERROR", "readLaunchToml", "errRead", errRead)
+		}
 
-		createScript(toml)
+		errUnmarshal := toml.Unmarshal([]byte(tomlRead), &launchConfig)
+		if errUnmarshal != nil {
+			Glog("ERROR", "readLaunchToml", "errUnmarshal", errUnmarshal)
+		}
+
+		cpArtifact := readArtifact(dir)
+		var UseG1GC string
+		var UseAdaptiveSizePolicy string
+		var OmitStackTraceInFastThrow string
+
+		if launchConfig.UseG1GC {
+			UseG1GC = "-XX:+UseG1GC"
+		}
+
+		if launchConfig.UseAdaptiveSizePolicy {
+			UseAdaptiveSizePolicy = "-XX:-UseAdaptiveSizePolicy"
+		}
+
+		if launchConfig.OmitStackTraceInFastThrow {
+			OmitStackTraceInFastThrow = "-XX:-OmitStackTraceInFastThrow"
+		}
+
+		launchToml = "java -Xmx" + launchConfig.Xmx + " -Xmn" + launchConfig.Xmn + " " + UseG1GC + " " + UseAdaptiveSizePolicy + " " + OmitStackTraceInFastThrow +
+			LAUNCH_TOML_LAUNCH_NAME + LAUNCH_TOML_LOG_FILE + dir + "/client-1.12.xml" + " -Djava.library.path=" + MkdirPath + " -cp " + cpArtifact + ".minecraft/versions/" + dir + "/" + dir + ".jar " + MINECRAFT_NO_MOD + " --username " + userName + " --version " + dir + " --gameDir .minecraft/versions/" +
+			dir + " --assetsDir .minecraft/assets/ " + "--accessToken 123456qwert" + " --assetIndex 17 " + "--uuid " + launchConfig.UUID + " --width " + launchConfig.Width + " --height " + launchConfig.Height
+
+		createScript(launchToml)
 	} else {
 		slog.Info("Using the default configuration")
 		userNameMd5 := Md5Create(userName)
 		// TODO: Mod 加载器启动支持
 		uuid := userNameMd5[:8] + "-" + userNameMd5[8:12] + "-" + userNameMd5[12:16] + "-" + userNameMd5[16:20] + "-" + userNameMd5[20:]
 		cpArtifact := readArtifact(dir)
-		toml = LAUNCH_TOML_DEFALUT_JVM + LAUNCH_TOML_LAUNCH_NAME + LAUNCH_TOML_LOG_FILE + dir + "/client-1.12.xml" +
+		launchToml = LAUNCH_TOML_DEFALUT_JVM + LAUNCH_TOML_LAUNCH_NAME + LAUNCH_TOML_LOG_FILE + dir + "/client-1.12.xml" +
 			" -Djava.library.path=" + MkdirPath + " -cp " + cpArtifact + ".minecraft/versions/" + dir + "/" + dir + ".jar " + MINECRAFT_NO_MOD + " --username " + userName + " --version " + dir + " --gameDir .minecraft/versions/" +
 			dir + " --assetsDir .minecraft/assets/ " + "--accessToken 123456qwert" + " --assetIndex 17 " + "--uuid " + uuid + " --width 1800 " + "--height 1000"
-		createScript(toml)
+		createScript(launchToml)
 	}
 
 }
@@ -315,21 +359,12 @@ func createScript(toml string) {
 // 执行脚本
 func launchGame() {
 	slog.Info("Start launching game")
+
 	launch := exec.Command("bash", ".gmcl/launch.sh")
-	var stdout, stderr bytes.Buffer
-	launch.Stdout = &stdout
-	launch.Stderr = &stderr
 
 	err := launch.Run()
 	if err != nil {
-		slog.Error(err.Error())
+		Glog("ERROR", "launchGame", "err", err)
 	}
 
-	launchOut, launchErr := stdout.String(), stderr.String()
-	if launchErr != "" {
-		slog.Error(launchErr)
-	} else {
-		slog.Info("Launch success")
-		fmt.Println(launchOut)
-	}
 }
