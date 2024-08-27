@@ -9,7 +9,7 @@
 - [x] 自定义启动参数
 
 ## 截图
-![Home](./Resources/GMCL-Home-v0.9.0.png)
+![Home](./Resources/GMCL-Home-v1.0.0.png)
 
 **Text in GMCL is translated by Google.**
 
