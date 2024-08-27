@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	resources "go-mcl/Resources"
 	utils "go-mcl/Utils"
 	"log/slog"
@@ -30,16 +31,16 @@ const Downloads_Version_Json = `
  `
 
 const EXIT = `
- 	Exit launcher     
+	Exit launcher     
  `
 
 const DownGame = `
  	Downloads Game    
  `
 
-const VERSION = `0.9.0`
+const VERSION = `1.0.0`
 
-const BUILD_DATE = `2024-08-02 22:24`
+const BUILD_DATE = `2024-08-26 08:47`
 
 type UserToml struct {
 	UserName   string
@@ -54,7 +55,7 @@ type GameChoose struct {
 }
 
 func init() {
-	slog.Info("==> 少女祈祷中...")
+	fmt.Println("==> 少女祈祷中...")
 	slog.Info("System: " + runtime.GOOS)
 	slog.Info("Arch: " + runtime.GOARCH)
 	path, err := os.Getwd()

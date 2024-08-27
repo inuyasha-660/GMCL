@@ -102,7 +102,16 @@ func DownloadsGmae(Version string, forge bool, forgeVersion string, downWin fyne
 	GetLibraries(Version, ".minecraft/versions/"+Version+"/"+path.Base(gameUrl.String()), entry_Down_sLog, downsLog)
 
 	if forge {
+		downsLog = downsLog + "\n" + "=> Start installing Forge"
+		entry_Down_sLog.SetText(downsLog)
+
 		GetForge(forgeVersion)
+
+		downsLog = downsLog + "\n" + "-> Installation Complete" + "\n" + "==> All downloaded completed" + "\n" + "==> You can close the window"
+		entry_Down_sLog.SetText(downsLog)
+	} else {
+		downsLog = downsLog + "\n" + "==> All downloaded completed" + "\n" + "==> You can close the window"
+		entry_Down_sLog.SetText(downsLog)
 	}
 }
 
@@ -155,7 +164,7 @@ func assetsDownload(path string, entry_Down_sLog *widget.Entry, downsLog string)
 	if errIndexRead != nil {
 		slog.Error("Read"+indexPath, "failed:", errIndexRead)
 	}
-	downsLog = downsLog + "\n" + "Start Downloading Object"
+	downsLog = downsLog + "\n" + "=> Start Downloading Object"
 	entry_Down_sLog.SetText(downsLog)
 
 	Object_Hash := gjson.Get(string(indexFile), `@dig:hash`) // 获取 Objects 内所有 hash 值
@@ -188,13 +197,13 @@ func assetsDownload(path string, entry_Down_sLog *widget.Entry, downsLog string)
 			slog.Info("Success")
 		}
 	}
-	downsLog = downsLog + "\n" + "Download success"
+	downsLog = downsLog + "\n" + "-> Download success"
 	entry_Down_sLog.SetText(downsLog)
 
 }
 
 func GetGameJar(version, path string, entry_Down_sLog *widget.Entry, downsLog string) {
-	downsLog = downsLog + "\n" + "Start Downloading Game Jar"
+	downsLog = downsLog + "\n" + "=> Start Downloading Game Jar"
 	entry_Down_sLog.SetText(downsLog)
 	jsonFile, errRead := os.ReadFile(path)
 	if errRead != nil {
@@ -221,13 +230,13 @@ func GetGameJar(version, path string, entry_Down_sLog *widget.Entry, downsLog st
 		Glog("ERROR", "GetGameJar", "errCopy", errCopy)
 	} else {
 		slog.Info("Success")
-		downsLog = downsLog + "\n" + "Success"
+		downsLog = downsLog + "\n" + "-> Success"
 		entry_Down_sLog.SetText(downsLog)
 	}
 }
 
 func GetLibraries(version, path string, entry_Down_sLog *widget.Entry, downsLog string) {
-	downsLog = downsLog + "\n" + "Start Downloading Libraries"
+	downsLog = downsLog + "\n" + "=> Start Downloading Libraries"
 	entry_Down_sLog.SetText(downsLog)
 	jsonFile, errRead := os.ReadFile(path)
 	if errRead != nil {
@@ -271,7 +280,7 @@ func GetLibraries(version, path string, entry_Down_sLog *widget.Entry, downsLog 
 
 	}
 
-	downsLog = downsLog + "\n" + "Download Libraries Completed" + "\n" + " Start Downloading client-1.12.xml"
+	downsLog = downsLog + "\n" + "-> Download Libraries Completed" + "\n" + "=> Start Downloading client-1.12.xml"
 	entry_Down_sLog.SetText(downsLog)
 
 	urlLog := gjson.Get(string(jsonFile), `logging.client.file.url`)
@@ -291,11 +300,9 @@ func GetLibraries(version, path string, entry_Down_sLog *widget.Entry, downsLog 
 	if errLogCopy != nil {
 		Glog("ERROR", "GetLibraries", "errLogCopy", errLogCopy)
 	} else {
-		downsLog = downsLog + "\n" + "Download log4j2.xml completed"
+		downsLog = downsLog + "\n" + "-> Download log4j2.xml completed"
+		entry_Down_sLog.SetText(downsLog)
 	}
-
-	downsLog = downsLog + "\n" + "All downloaded completed" + "\n" + "You can close the window"
-	entry_Down_sLog.SetText(downsLog)
 
 }
 

@@ -26,6 +26,8 @@ const FORGE_LIST = `https://bmclapi2.bangbang93.com/forge/minecraft/`
 // 根据 build 下载forge，后接 build
 const FORGE_GET = `https://bmclapi2.bangbang93.com/forge/download/`
 
+const USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+
 var RespRead []byte // 用于储存读取后的 resp.Body
 
 // version string: Forge 版本
@@ -35,9 +37,16 @@ func GetForge(version string) {
 	downUrl := FORGE_GET + buildForge.String()
 	slog.Info("Get Forge from: " + downUrl + " Version: " + buildForge.String())
 
-	resp, err := http.Get(downUrl)
-	if err != nil {
-		Glog("ERROR", "GetForge", "err", err)
+	client := &http.Client{}
+	requ, errNewReq := http.NewRequest("GET", downUrl, nil)
+	if errNewReq != nil {
+		Glog("ERROR", "GetForge", "errNewReq", errNewReq)
+	}
+	requ.Header.Set("User-Agent", USER_AGENT)
+
+	resp, errDo := client.Do(requ)
+	if errDo != nil {
+		Glog("ERROR", "GetForge", "errDo", errDo)
 	}
 	defer resp.Body.Close()
 
@@ -46,7 +55,6 @@ func GetForge(version string) {
 	if errCreate != nil {
 		Glog("ERROR", "GetForge", "errCreate", errCreate)
 	}
-	defer jar.Close()
 
 	_, errCopy := io.Copy(jar, resp.Body)
 	if errCopy != nil {
@@ -70,7 +78,7 @@ func ProfilesWriter(JarPath string) {
             "name": "(Default)"
         }
     },
-    "selectedProfileName": "(Default)",
+    "selectedProfileName": "(Default)"
 }
 	`)
 	if err != nil {

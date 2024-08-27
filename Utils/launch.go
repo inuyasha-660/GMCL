@@ -16,7 +16,7 @@ import (
 
 const SCRIPT_BASH = `#!/usr/bin/env bash`
 
-const LAUNCH_TOML_DEFALUT_JVM = `java -Xmx1024m -Xmn128m -XX:+UseG1GC -XX:-UseAdaptiveSizePolicy -XX:-OmitStackTraceInFastThrow`
+const LAUNCH_TOML_DEFALUT_JVM = `java -Xmx1024m -Xmn128m -XX:+UseG1GC -XX:-UseAdaptiveSizePolicy -XX:-OmitStackTraceInFastThrow `
 
 const LAUNCH_TOML_LAUNCH_NAME = ` -Dminecraft.launcher.brand=GMCL -Dminecraft.launcher.version=0.9.0 `
 
@@ -24,7 +24,7 @@ const LAUNCH_TOML_LOG_FILE = ` -Dlog4j.configurationFile=.minecraft/versions/`
 
 const MINECRAFT_NO_MOD = ` net.minecraft.client.main.Main `
 
-const MINECRAFT_WITH_MOD = `net.minecraft.launchwrapper.Launch `
+const MINECRAFT_CLASS_FORGE = ` net.minecraftforge.bootstrap.ForgeBootstrap `
 
 var NATIVES_JAR_LINUX_X64 = map[string]string{
 	`libglfw.so`:         `.minecraft/libraries/org/lwjgl/lwjgl-glfw/*/lwjgl-glfw-*-natives-linux.jar`,
@@ -52,6 +52,8 @@ var NATIVES_JAR_MACOS_ARM64 = map[string]string{
 	`liblwjgl_stb.so`:    `.minecraft/libraries/org/lwjgl/lwjgl-stb/*/lwjgl-stb-*-natives-macos-arm64.jar`,
 	`libopenal.so`:       `.minecraft/libraries/org/lwjgl/lwjgl-openal/*/lwjgl-openal-*-natives-macos-arm64.jar`,
 }
+
+var ForgeVersion string
 
 type LauncConfig struct {
 	Xmx                       string
@@ -84,8 +86,6 @@ func LaunchCheck(VersionChoose, userName string) {
 	}
 
 }
-
-// TODO: 检测 Natives库文件是否存在，存在则跳过解压否则进行解压
 
 // 启动版本选择检测
 func CheckVersion(VersionChoose string) bool {
@@ -125,7 +125,7 @@ func UnzipJar(version, userName string) {
 	system := runtime.GOOS
 	arch := runtime.GOARCH
 
-	dir := strings.TrimSuffix(version, path.Ext(version))                         // 去除拓展名的游戏Jar文件，类似: 1.21(1.21.jar)
+	dir := strings.TrimSuffix(version, path.Ext(version))                         // 去除Jar拓展名
 	MkdirPath := ".minecraft/versions/" + dir + "/natives-" + system + "-" + arch // Natives目录
 	errMkdir := os.MkdirAll(MkdirPath, 0777)
 	if errMkdir != nil {
@@ -265,6 +265,7 @@ func UnzipCmd() {
 }
 
 // 读取用户配置，若不存在则使用默认配置
+// version: string 游戏版本
 func readLaunchToml(dir, MkdirPath, userName string) {
 	slog.Info("Create/Read Configuration")
 	var launchToml string
@@ -288,34 +289,75 @@ func readLaunchToml(dir, MkdirPath, userName string) {
 		var OmitStackTraceInFastThrow string
 
 		if launchConfig.UseG1GC {
-			UseG1GC = "-XX:+UseG1GC"
+			UseG1GC = " -XX:+UseG1GC "
 		}
 
 		if launchConfig.UseAdaptiveSizePolicy {
-			UseAdaptiveSizePolicy = "-XX:-UseAdaptiveSizePolicy"
+			UseAdaptiveSizePolicy = " -XX:-UseAdaptiveSizePolicy "
 		}
 
 		if launchConfig.OmitStackTraceInFastThrow {
-			OmitStackTraceInFastThrow = "-XX:-OmitStackTraceInFastThrow"
+			OmitStackTraceInFastThrow = " -XX:-OmitStackTraceInFastThrow "
 		}
 
-		launchToml = "java -Xmx" + launchConfig.Xmx + " -Xmn" + launchConfig.Xmn + " " + UseG1GC + " " + UseAdaptiveSizePolicy + " " + OmitStackTraceInFastThrow +
-			LAUNCH_TOML_LAUNCH_NAME + LAUNCH_TOML_LOG_FILE + dir + "/client-1.12.xml" + " -Djava.library.path=" + MkdirPath + " -cp " + cpArtifact + ".minecraft/versions/" + dir + "/" + dir + ".jar " + MINECRAFT_NO_MOD + " --username " + userName + " --version " + dir + " --gameDir .minecraft/versions/" +
-			dir + " --assetsDir .minecraft/assets/ " + "--accessToken 123456qwert" + " --assetIndex 17 " + "--uuid " + launchConfig.UUID + " --width " + launchConfig.Width + " --height " + launchConfig.Height
+		var mainClass string
+		var cpArtifactForge string
+		var forgeArgJvm string
+		var forgeArgMain string
+		if ok := modLoaderCheck(); ok {
+			mainClass = MINECRAFT_CLASS_FORGE
+			cpArtifactForge = readForgeArtifact()
+			forgeArgJvm = "-Djava.net.preferIPv6Addresses=system"
+			forgeArgMain = " --launchTarget forge_client "
+		} else {
+			mainClass = MINECRAFT_NO_MOD
+		}
+
+		launchToml = "java -Xmx" + launchConfig.Xmx + " -Xmn" + launchConfig.Xmn + " " + UseG1GC + " " + UseAdaptiveSizePolicy + " " + OmitStackTraceInFastThrow + forgeArgJvm +
+			LAUNCH_TOML_LAUNCH_NAME + LAUNCH_TOML_LOG_FILE + dir + "/client-1.12.xml" + " -Djava.library.path=" + MkdirPath + " -cp " + cpArtifact + cpArtifactForge + ".minecraft/versions/" + dir + "/" + dir + ".jar " + mainClass + " --username " + userName + " --version " + dir + " --gameDir .minecraft/versions/" +
+			dir + " --assetsDir .minecraft/assets/ " + "--accessToken 123456qwert" + " --assetIndex 17 " + "--uuid " + launchConfig.UUID + " " + forgeArgMain + " --width " + launchConfig.Width + " --height " + launchConfig.Height
 
 		createScript(launchToml)
 	} else {
 		slog.Info("Using the default configuration")
 		userNameMd5 := Md5Create(userName)
-		// TODO: Mod 加载器启动支持
+		var mainClass string
+		var cpArtifactForge string
+		var forgeArg string
+		var forgeArgMain string
+		if ok := modLoaderCheck(); ok {
+			mainClass = MINECRAFT_CLASS_FORGE
+			cpArtifactForge = readForgeArtifact()
+			forgeArg = "-Djava.net.preferIPv6Addresses=system"
+			forgeArgMain = " --launchTarget forge_client "
+		} else {
+			mainClass = MINECRAFT_NO_MOD
+		}
 		uuid := userNameMd5[:8] + "-" + userNameMd5[8:12] + "-" + userNameMd5[12:16] + "-" + userNameMd5[16:20] + "-" + userNameMd5[20:]
 		cpArtifact := readArtifact(dir)
-		launchToml = LAUNCH_TOML_DEFALUT_JVM + LAUNCH_TOML_LAUNCH_NAME + LAUNCH_TOML_LOG_FILE + dir + "/client-1.12.xml" +
-			" -Djava.library.path=" + MkdirPath + " -cp " + cpArtifact + ".minecraft/versions/" + dir + "/" + dir + ".jar " + MINECRAFT_NO_MOD + " --username " + userName + " --version " + dir + " --gameDir .minecraft/versions/" +
-			dir + " --assetsDir .minecraft/assets/ " + "--accessToken 123456qwert" + " --assetIndex 17 " + "--uuid " + uuid + " --width 1800 " + "--height 1000"
+		launchToml = LAUNCH_TOML_DEFALUT_JVM + forgeArg + LAUNCH_TOML_LAUNCH_NAME + LAUNCH_TOML_LOG_FILE + dir + "/client-1.12.xml" +
+			" -Djava.library.path=" + MkdirPath + " -cp " + cpArtifact + cpArtifactForge + ".minecraft/versions/" + dir + "/" + dir + ".jar " + mainClass + " --username " + userName + " --version " + dir + " --gameDir .minecraft/versions/" +
+			dir + " --assetsDir .minecraft/assets/ " + "--accessToken 123456qwert" + " --assetIndex 17 " + "--uuid " + uuid + forgeArgMain + " --width 1800 " + "--height 1000"
 		createScript(launchToml)
 	}
 
+}
+
+func modLoaderCheck() bool {
+	profiles, err := os.ReadFile(".minecraft/launcher_profiles.json")
+	if err != nil {
+		Glog("ERROR", "modLoaderCheck", "err", err)
+	}
+
+	versionID := gjson.Get(string(profiles), "profiles.forge.lastVersionId")
+	if versionID.String() == "" {
+		slog.Info("Forge not found")
+		return false
+	} else {
+		slog.Info("Find Forge")
+		ForgeVersion = versionID.String()
+		return true
+	}
 }
 
 // Version: 不含 .jar 拓展名
@@ -331,6 +373,21 @@ func readArtifact(version string) string {
 		pathGet = pathGet + ".minecraft/libraries/" + path.String() + ":"
 	}
 	return pathGet
+}
+
+// Version: 不含 .jar 拓展名
+func readForgeArtifact() string {
+	var forgePath string
+	jsonFile, err := os.ReadFile(".minecraft/versions/" + ForgeVersion + "/" + ForgeVersion + ".json")
+	if err != nil {
+		Glog("ERROR", "readForgeArtifact", "err", err)
+	}
+	forgeJson := gjson.Get(string(jsonFile), "libraries.@dig:path")
+	for _, path := range forgeJson.Array() {
+		forgePath = forgePath + ".minecraft/libraries/" + path.String() + ":"
+	}
+
+	return forgePath
 }
 
 // 创建启动脚本
